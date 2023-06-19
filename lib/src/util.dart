@@ -16,15 +16,15 @@ Future<Map<String, dynamic>> fetchUser(
   String usersPathName, {
   String? role,
 }) async {
-  final snapshot = await instance.child('$usersPathName/$userId').once();
+  final dbEvent = await instance.child('$usersPathName/$userId').once();
 
-  final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map<String, dynamic>);
+  final data = Map<String, dynamic>.from(dbEvent.snapshot.value as Map);
 
-  data['createdAt'] = data['createdAt']?.millisecondsSinceEpoch;
-  data['id'] = snapshot.snapshot.key;
-  data['lastSeen'] = data['lastSeen']?.millisecondsSinceEpoch;
+  // data['createdAt'] = DateTime.fromMillisecondsSinceEpoch(data['createdAt']).millisecond;
+  data['id'] = dbEvent.snapshot.key;
+  // data['lastSeen'] = DateTime.fromMillisecondsSinceEpoch(data['lastSeen'] as int);
   data['role'] = role;
-  data['updatedAt'] = data['updatedAt']?.millisecondsSinceEpoch;
+  // data['updatedAt'] = DateTime.fromMillisecondsSinceEpoch(data['updatedAt'] as int);
 
   return data;
 }

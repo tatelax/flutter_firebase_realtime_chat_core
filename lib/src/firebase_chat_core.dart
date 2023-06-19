@@ -69,7 +69,7 @@ class FirebaseChatCore {
       'name': name,
       'type': types.RoomType.group.toShortString(),
       'updatedAt': ServerValue.timestamp,
-      'userIds': roomUsers.map((u) => u.id).toList(),
+      'users': roomUsers.map((u) => u.id).toList(),
       'userRoles': roomUsers.fold<Map<String, String?>>(
         {},
         (previousValue, user) => {
@@ -101,27 +101,27 @@ class FirebaseChatCore {
 
     // Sort two user ids array to always have the same array for both users,
     // this will make it easy to find the room if exist and make one read only.
-    final userIds = [fu.uid, otherUser.id]..sort();
+    final users = [fu.uid, otherUser.id]..sort();
 
     // Check if room already exist.
     // Get the rooms that the user is in.
     final userRoomsRef = getFirebaseDatabase().child('${config.usersPathName}/${fu.uid}/rooms');
     final userRoomsRefEvent = await userRoomsRef.once();
     if (userRoomsRefEvent.snapshot.value != null) {
-      final userRoomsSnapshot = userRoomsRefEvent.snapshot as Map<String, dynamic>;
+      final userRoomsSnapshot = userRoomsRefEvent.snapshot.value as Map;
       // Loop through all of the rooms that the user is in.
       for (var roomId in userRoomsSnapshot.keys) {
         // Get the room.
         final roomRef = await getFirebaseDatabase().child('${config.roomsPathName}/$roomId').once();
 
         if (roomRef.snapshot.value != null) {
-          final roomSnapshot = roomRef.snapshot as Map<String, dynamic>;
+          final roomSnapshot = roomRef.snapshot.value as Map;
 
           final room = Map<String, dynamic>.from(roomSnapshot);
           final roomType = room['type'];
-          final usersInRoom = List<String>.from(room['userIds']);
-          if (roomType == types.RoomType.direct.toShortString() && usersInRoom.toSet().containsAll(userIds)) {
-            return types.Room.fromJson(roomSnapshot);
+          final usersInRoom = List<String>.from(room['users']);
+          if (roomType == types.RoomType.direct.toShortString() && usersInRoom.toSet().containsAll(users)) {
+            return types.Room.fromJson(room);
           }
         }
       }
@@ -133,7 +133,7 @@ class FirebaseChatCore {
       config.usersPathName,
     );
 
-    final users = [types.User.fromJson(currentUser), otherUser];
+    final newUserList = [types.User.fromJson(currentUser), otherUser];
 
     // Create new room with sorted user ids array.
     final roomRef = getFirebaseDatabase().child(config.roomsPathName).push();
@@ -144,7 +144,7 @@ class FirebaseChatCore {
       'name': null,
       'type': types.RoomType.direct.toShortString(),
       'updatedAt': ServerValue.timestamp,
-      'userIds': userIds,
+      'users': users,
       'userRoles': null,
     });
 
@@ -155,7 +155,7 @@ class FirebaseChatCore {
       id: roomRef.key!,
       metadata: metadata,
       type: types.RoomType.direct,
-      users: users,
+      users: newUserList,
     );
   }
 
@@ -228,10 +228,10 @@ class FirebaseChatCore {
 
     if (fu == null) return const Stream.empty();
 
-    return getFirebaseDatabase().child('${config.roomsPathName}/$roomId').onValue.map((event) async {
-          final roomData = Map<String, dynamic>.from(event.snapshot.value);
-          return types.Room.fromJson(roomData);
-        } as types.Room Function(DatabaseEvent event));
+    return getFirebaseDatabase().child('${config.roomsPathName}/$roomId').onValue.asyncMap((event) async {
+      final roomData = Map<String, dynamic>.from(event.snapshot.value as Map);
+      return types.Room.fromJson(roomData);
+    });
   }
 
   /// Returns a stream of rooms from Firebase. Only rooms where current
@@ -257,8 +257,8 @@ class FirebaseChatCore {
         final filteredRooms = <Map<String, dynamic>>[];
 
         for (var room in roomsList) {
-          final List<dynamic> userIds = room['userIds'] ?? [];
-          if (userIds.contains(fu.uid)) {
+          final List<dynamic> users = room['users'] ?? [];
+          if (users.contains(fu.uid)) {
             filteredRooms.add(room);
           }
         }
@@ -360,7 +360,7 @@ class FirebaseChatCore {
       return messageMap;
     }).toList();
     roomMap['updatedAt'] = ServerValue.timestamp;
-    roomMap['userIds'] = room.users.map((u) => u.id).toList();
+    roomMap['users'] = room.users.map((u) => u.id).toList();
 
     await getFirebaseDatabase().child('${config.roomsPathName}/${room.id}').update(roomMap);
   }
@@ -371,22 +371,31 @@ class FirebaseChatCore {
 
     final usersRef = getFirebaseDatabase().child(config.usersPathName);
     return usersRef.onValue.map((event) {
-      final dataMap = Map<String, dynamic>.from(event.snapshot.value as Map<String, dynamic>);
-      final users = <types.User>[];
-      dataMap.forEach((key, value) {
-        if (firebaseUser!.uid == key) return;
+      try {
+        final dataMap = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final users = <types.User>[];
+        dataMap.forEach((key, value) {
+          if (firebaseUser!.uid == key) return;
 
-        final data = Map<String, dynamic>.from(value);
+          final data = Map<String, dynamic>.from(value);
 
-        data['createdAt'] = data['createdAt']?.millisecondsSinceEpoch;
-        data['id'] = key;
-        data['lastSeen'] = data['lastSeen']?.millisecondsSinceEpoch;
-        data['updatedAt'] = data['updatedAt']?.millisecondsSinceEpoch;
+          // data['createdAt'] = data['createdAt'] is DateTime
+          //     ? (data['createdAt'] as DateTime).millisecondsSinceEpoch
+          //     : data['createdAt'];
+          data['id'] = key;
+          // data['lastSeen'] =
+          //     data['lastSeen'] is DateTime ? (data['lastSeen'] as DateTime).millisecondsSinceEpoch : data['lastSeen'];
+          // data['updatedAt'] = data['updatedAt'] is DateTime
+          //     ? (data['updatedAt'] as DateTime).millisecondsSinceEpoch
+          //     : data['updatedAt'];
+          users.add(types.User.fromJson(data));
+        });
 
-        users.add(types.User.fromJson(data));
-      });
-
-      return users;
+        return users;
+      } catch (e) {
+        print(e);
+      }
+      throw FormatException('');
     });
   }
 }
