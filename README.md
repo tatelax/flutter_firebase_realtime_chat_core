@@ -6,7 +6,7 @@
   </a>
 </p>
 
-<h1 align="center">Flutter Firebase Chat Core</h1>
+<h1 align="center">Flutter Firebase Chat Core (Realtime DB)</h1>
 
 <p align="center">
   Actively maintained, community-driven Firebase BaaS for chat applications with an optional <a href="https://pub.dev/packages/flutter_chat_ui">chat UI</a>.
