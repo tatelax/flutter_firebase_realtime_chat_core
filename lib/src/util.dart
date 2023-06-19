@@ -13,10 +13,10 @@ extension RoomTypeToShortString on types.RoomType {
 Future<Map<String, dynamic>> fetchUser(
   DatabaseReference instance,
   String userId,
-  String usersCollectionName, {
+  String usersPathName, {
   String? role,
 }) async {
-  final snapshot = await instance.child('$usersCollectionName/$userId').once();
+  final snapshot = await instance.child('$usersPathName/$userId').once();
 
   final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map<String, dynamic>);
 
@@ -33,14 +33,14 @@ Future<List<types.Room>> processRoomsData(
   List<Map<String, dynamic>> roomsData,
   User firebaseUser,
   DatabaseReference instance,
-  String usersCollectionName,
+  String usersPathName,
 ) async {
   final futures = roomsData.map(
     (roomData) => processRoomData(
       roomData,
       firebaseUser,
       instance,
-      usersCollectionName,
+      usersPathName,
     ),
   );
 
@@ -51,7 +51,7 @@ Future<types.Room> processRoomData(
   Map<String, dynamic> roomData,
   User firebaseUser,
   DatabaseReference instance,
-  String usersCollectionName,
+  String usersPathName,
 ) async {
   roomData['createdAt'] = roomData['createdAt']?.millisecondsSinceEpoch;
   roomData['updatedAt'] = roomData['updatedAt']?.millisecondsSinceEpoch;
@@ -67,7 +67,7 @@ Future<types.Room> processRoomData(
       (userId) => fetchUser(
         instance,
         userId as String,
-        usersCollectionName,
+        usersPathName,
         role: userRoles?[userId] as String?,
       ),
     ),

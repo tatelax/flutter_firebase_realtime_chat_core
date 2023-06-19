@@ -14,7 +14,7 @@ class FirebaseChatCore {
     });
   }
 
-  /// Config to set custom names for rooms and users collections. Also
+  /// Config to set custom names for rooms and users paths. Also
   /// see [FirebaseChatCoreConfig].
   FirebaseChatCoreConfig config = const FirebaseChatCoreConfig(
     null,
@@ -33,7 +33,7 @@ class FirebaseChatCore {
   DatabaseReference getFirebaseDatabase() => FirebaseDatabase.instance.ref();
 
   /// Sets custom config to change default names for rooms
-  /// and users collections. Also see [FirebaseChatCoreConfig].
+  /// and users paths. Also see [FirebaseChatCoreConfig].
   void setConfig(FirebaseChatCoreConfig firebaseChatCoreConfig) {
     config = firebaseChatCoreConfig;
   }
@@ -54,13 +54,13 @@ class FirebaseChatCore {
     final currentUser = await fetchUser(
       getFirebaseDatabase(),
       firebaseUser!.uid,
-      config.usersCollectionName,
+      config.usersPathName,
       role: creatorRole.toShortString(),
     );
 
     final roomUsers = [types.User.fromJson(currentUser)] + users;
 
-    final roomRef = getFirebaseDatabase().child(config.roomsCollectionName).push();
+    final roomRef = getFirebaseDatabase().child(config.roomsPathName).push();
 
     await roomRef.set({
       'createdAt': ServerValue.timestamp,
@@ -105,14 +105,14 @@ class FirebaseChatCore {
 
     // Check if room already exist.
     // Get the rooms that the user is in.
-    final userRoomsRef = getFirebaseDatabase().child('${config.usersCollectionName}/${fu.uid}/rooms');
+    final userRoomsRef = getFirebaseDatabase().child('${config.usersPathName}/${fu.uid}/rooms');
     final userRoomsRefEvent = await userRoomsRef.once();
     if (userRoomsRefEvent.snapshot.value != null) {
       final userRoomsSnapshot = userRoomsRefEvent.snapshot as Map<String, dynamic>;
       // Loop through all of the rooms that the user is in.
       for (var roomId in userRoomsSnapshot.keys) {
         // Get the room.
-        final roomRef = await getFirebaseDatabase().child('${config.roomsCollectionName}/$roomId').once();
+        final roomRef = await getFirebaseDatabase().child('${config.roomsPathName}/$roomId').once();
 
         if (roomRef.snapshot.value != null) {
           final roomSnapshot = roomRef.snapshot as Map<String, dynamic>;
@@ -130,13 +130,13 @@ class FirebaseChatCore {
     final currentUser = await fetchUser(
       getFirebaseDatabase(),
       fu.uid,
-      config.usersCollectionName,
+      config.usersPathName,
     );
 
     final users = [types.User.fromJson(currentUser), otherUser];
 
     // Create new room with sorted user ids array.
-    final roomRef = getFirebaseDatabase().child(config.roomsCollectionName).push();
+    final roomRef = getFirebaseDatabase().child(config.roomsPathName).push();
     await roomRef.set({
       'createdAt': ServerValue.timestamp,
       'imageUrl': null,
@@ -162,7 +162,7 @@ class FirebaseChatCore {
   /// Creates [types.User] in Firebase to store name and avatar used on
   /// rooms list.
   Future<void> createUserInDatabase(types.User user) async {
-    await getFirebaseDatabase().child('${config.usersCollectionName}/${user.id}').set({
+    await getFirebaseDatabase().child('${config.usersPathName}/${user.id}').set({
       'createdAt': ServerValue.timestamp,
       'firstName': user.firstName,
       'imageUrl': user.imageUrl,
@@ -176,17 +176,17 @@ class FirebaseChatCore {
 
   /// Removes message.
   Future<void> deleteMessage(String roomId, String messageId) async {
-    await getFirebaseDatabase().child('${config.roomsCollectionName}/$roomId/messages/$messageId').remove();
+    await getFirebaseDatabase().child('${config.roomsPathName}/$roomId/messages/$messageId').remove();
   }
 
   /// Removes room.
   Future<void> deleteRoom(String roomId) async {
-    await getFirebaseDatabase().child('${config.roomsCollectionName}/$roomId').remove();
+    await getFirebaseDatabase().child('${config.roomsPathName}/$roomId').remove();
   }
 
-  /// Removes [types.User] from `users` collection in Firebase.
+  /// Removes [types.User] from `users` path in Firebase Realtime DB.
   Future<void> deleteUserFromRealtimeDB(String userId) async {
-    await getFirebaseDatabase().child('${config.usersCollectionName}/$userId').remove();
+    await getFirebaseDatabase().child('${config.usersPathName}/$userId').remove();
   }
 
   /// Returns a stream of messages from Firebase for a given room.
@@ -195,7 +195,7 @@ class FirebaseChatCore {
     int? limit,
   }) =>
       getFirebaseDatabase()
-          .child('${config.roomsCollectionName}/${room.id}/messages')
+          .child('${config.roomsPathName}/${room.id}/messages')
           .orderByChild('createdAt')
           .limitToFirst(limit ?? 100) // Limit the number of messages to fetch at once. Default is 100.
           .onValue
@@ -228,7 +228,7 @@ class FirebaseChatCore {
 
     if (fu == null) return const Stream.empty();
 
-    return getFirebaseDatabase().child('${config.roomsCollectionName}/$roomId').onValue.map((event) async {
+    return getFirebaseDatabase().child('${config.roomsPathName}/$roomId').onValue.map((event) async {
           final roomData = Map<String, dynamic>.from(event.snapshot.value);
           return types.Room.fromJson(roomData);
         } as types.Room Function(DatabaseEvent event));
@@ -240,16 +240,13 @@ class FirebaseChatCore {
   /// of things you will need to do though:
   /// 1) Make sure `updatedAt` exists on all rooms
   /// 2) Write a Cloud Function which will update `updatedAt` of the room
-  /// when the room changes or new messages come in
-  /// 3) Create an Index (Firestore Database -> Indexes tab) where collection ID
-  /// is `rooms`, field indexed are `userIds` (type Arrays) and `updatedAt`
-  /// (type Descending), query scope is `Collection`.
+  /// when the room changes or new messages come in.
   Stream<List<types.Room>> rooms({bool orderByUpdatedAt = false}) {
     final fu = firebaseUser;
 
     if (fu == null) return const Stream.empty();
 
-    return getFirebaseDatabase().child(config.roomsCollectionName).onValue.map(
+    return getFirebaseDatabase().child(config.roomsPathName).onValue.map(
       (event) {
         if (event.snapshot.value == null) {
           return <types.Room>[];
@@ -275,7 +272,7 @@ class FirebaseChatCore {
     );
   }
 
-  /// Sends a message to the Firestore. Accepts any partial message and a
+  /// Sends a message to Firebase Realtime DB. Accepts any partial message and a
   /// room ID. If arbitraty data is provided in the [partialMessage]
   /// does nothing.
   void sendMessage(dynamic partialMessage, String roomId) async {
@@ -316,16 +313,14 @@ class FirebaseChatCore {
       messageMap['createdAt'] = ServerValue.timestamp;
       messageMap['updatedAt'] = ServerValue.timestamp;
 
-      final messageRef = getFirebaseDatabase().child('${config.roomsCollectionName}/$roomId/messages').push();
+      final messageRef = getFirebaseDatabase().child('${config.roomsPathName}/$roomId/messages').push();
       await messageRef.set(messageMap);
 
-      await getFirebaseDatabase()
-          .child('${config.roomsCollectionName}/$roomId')
-          .update({'updatedAt': ServerValue.timestamp});
+      await getFirebaseDatabase().child('${config.roomsPathName}/$roomId').update({'updatedAt': ServerValue.timestamp});
     }
   }
 
-  /// Updates a message in the Firestore. Accepts any message and a
+  /// Updates a message in Firebase Realtime DB. Accepts any message and a
   /// room ID. Message will probably be taken from the [messages] stream.
   void updateMessage(types.Message message, String roomId) async {
     if (firebaseUser == null) return;
@@ -338,12 +333,10 @@ class FirebaseChatCore {
     messageMap['authorId'] = message.author.id;
     messageMap['updatedAt'] = ServerValue.timestamp;
 
-    await getFirebaseDatabase()
-        .child('${config.roomsCollectionName}/$roomId/messages/${message.id}')
-        .update(messageMap);
+    await getFirebaseDatabase().child('${config.roomsPathName}/$roomId/messages/${message.id}').update(messageMap);
   }
 
-  /// Updates a room in the Firestore. Accepts any room.
+  /// Updates a room in Firebase Realtime DB. Accepts any room.
   /// Room will probably be taken from the [rooms] stream.
   void updateRoom(types.Room room) async {
     if (firebaseUser == null) return;
@@ -369,14 +362,14 @@ class FirebaseChatCore {
     roomMap['updatedAt'] = ServerValue.timestamp;
     roomMap['userIds'] = room.users.map((u) => u.id).toList();
 
-    await getFirebaseDatabase().child('${config.roomsCollectionName}/${room.id}').update(roomMap);
+    await getFirebaseDatabase().child('${config.roomsPathName}/${room.id}').update(roomMap);
   }
 
   /// Returns a stream of all users from Firebase.
   Stream<List<types.User>> users() {
     if (firebaseUser == null) return const Stream.empty();
 
-    final usersRef = getFirebaseDatabase().child(config.usersCollectionName);
+    final usersRef = getFirebaseDatabase().child(config.usersPathName);
     return usersRef.onValue.map((event) {
       final dataMap = Map<String, dynamic>.from(event.snapshot.value as Map<String, dynamic>);
       final users = <types.User>[];
