@@ -1,27 +1,32 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 
+/// Extension with one [toShortString] method.
 extension RoleToShortString on types.Role {
+  /// Converts enum to the string equal to enum's name.
   String toShortString() => toString().split('.').last;
 }
 
+/// Extension with one [toShortString] method.
 extension RoomTypeToShortString on types.RoomType {
+  /// Converts enum to the string equal to enum's name.
   String toShortString() => toString().split('.').last;
 }
 
+/// Fetches user from Firebase and returns a promise.
 Future<Map<String, dynamic>> fetchUser(
-  DatabaseReference instance,
+  FirebaseFirestore instance,
   String userId,
   String usersCollectionName, {
   String? role,
 }) async {
-  final snapshot = await instance.child('$usersCollectionName/$userId').once();
+  final doc = await instance.collection(usersCollectionName).doc(userId).get();
 
-  final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map<String, dynamic>);
+  final data = doc.data()!;
 
   data['createdAt'] = data['createdAt']?.millisecondsSinceEpoch;
-  data['id'] = snapshot.snapshot.key;
+  data['id'] = doc.id;
   data['lastSeen'] = data['lastSeen']?.millisecondsSinceEpoch;
   data['role'] = role;
   data['updatedAt'] = data['updatedAt']?.millisecondsSinceEpoch;
@@ -29,15 +34,17 @@ Future<Map<String, dynamic>> fetchUser(
   return data;
 }
 
-Future<List<types.Room>> processRoomsData(
-  List<Map<String, dynamic>> roomsData,
+/// Returns a list of [types.Room] created from Firebase query.
+/// If room has 2 participants, sets correct room name and image.
+Future<List<types.Room>> processRoomsQuery(
   User firebaseUser,
-  DatabaseReference instance,
+  FirebaseFirestore instance,
+  QuerySnapshot<Map<String, dynamic>> query,
   String usersCollectionName,
 ) async {
-  final futures = roomsData.map(
-    (roomData) => processRoomData(
-      roomData,
+  final futures = query.docs.map(
+    (doc) => processRoomDocument(
+      doc,
       firebaseUser,
       instance,
       usersCollectionName,
@@ -47,20 +54,24 @@ Future<List<types.Room>> processRoomsData(
   return await Future.wait(futures);
 }
 
-Future<types.Room> processRoomData(
-  Map<String, dynamic> roomData,
+/// Returns a [types.Room] created from Firebase document.
+Future<types.Room> processRoomDocument(
+  DocumentSnapshot<Map<String, dynamic>> doc,
   User firebaseUser,
-  DatabaseReference instance,
+  FirebaseFirestore instance,
   String usersCollectionName,
 ) async {
-  roomData['createdAt'] = roomData['createdAt']?.millisecondsSinceEpoch;
-  roomData['updatedAt'] = roomData['updatedAt']?.millisecondsSinceEpoch;
+  final data = doc.data()!;
 
-  var imageUrl = roomData['imageUrl'] as String?;
-  var name = roomData['name'] as String?;
-  final type = roomData['type'] as String;
-  final userIds = roomData['userIds'] as List<dynamic>;
-  final userRoles = roomData['userRoles'] as Map<String, dynamic>?;
+  data['createdAt'] = data['createdAt']?.millisecondsSinceEpoch;
+  data['id'] = doc.id;
+  data['updatedAt'] = data['updatedAt']?.millisecondsSinceEpoch;
+
+  var imageUrl = data['imageUrl'] as String?;
+  var name = data['name'] as String?;
+  final type = data['type'] as String;
+  final userIds = data['userIds'] as List<dynamic>;
+  final userRoles = data['userRoles'] as Map<String, dynamic>?;
 
   final users = await Future.wait(
     userIds.map(
@@ -80,19 +91,20 @@ Future<types.Room> processRoomData(
       );
 
       imageUrl = otherUser['imageUrl'] as String?;
-      name = '${otherUser['firstName'] ?? ''} ${otherUser['lastName'] ?? ''}'.trim();
+      name = '${otherUser['firstName'] ?? ''} ${otherUser['lastName'] ?? ''}'
+          .trim();
     } catch (e) {
       // Do nothing if other user is not found, because he should be found.
       // Consider falling back to some default values.
     }
   }
 
-  roomData['imageUrl'] = imageUrl;
-  roomData['name'] = name;
-  roomData['users'] = users;
+  data['imageUrl'] = imageUrl;
+  data['name'] = name;
+  data['users'] = users;
 
-  if (roomData['lastMessages'] != null) {
-    final lastMessages = (roomData['lastMessages'] as List).map((lm) {
+  if (data['lastMessages'] != null) {
+    final lastMessages = data['lastMessages'].map((lm) {
       final author = users.firstWhere(
         (u) => u['id'] == lm['authorId'],
         orElse: () => {'id': lm['authorId'] as String},
@@ -106,8 +118,8 @@ Future<types.Room> processRoomData(
       return lm;
     }).toList();
 
-    roomData['lastMessages'] = lastMessages;
+    data['lastMessages'] = lastMessages;
   }
 
-  return types.Room.fromJson(roomData);
+  return types.Room.fromJson(data);
 }
