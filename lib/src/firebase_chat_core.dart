@@ -118,6 +118,7 @@ class FirebaseChatCore {
           final roomSnapshot = roomRef.snapshot.value as Map;
 
           final room = Map<String, dynamic>.from(roomSnapshot);
+          room['id'] = roomRef.snapshot.key;
           final roomType = room['type'];
           final usersInRoom = List<String>.from(room['users']);
           if (roomType == types.RoomType.direct.toShortString() && usersInRoom.toSet().containsAll(users)) {
@@ -132,8 +133,6 @@ class FirebaseChatCore {
       fu.uid,
       config.usersPathName,
     );
-
-    final newUserList = [types.User.fromJson(currentUser), otherUser];
 
     // Create new room with sorted user ids array.
     final roomRef = getFirebaseDatabase().child(config.roomsPathName).push();
@@ -150,6 +149,8 @@ class FirebaseChatCore {
 
     // Add the new room to the current user's rooms.
     await userRoomsRef.child(roomRef.key!).set(true);
+
+    final newUserList = [types.User.fromJson(currentUser), otherUser];
 
     return types.Room(
       id: roomRef.key!,
@@ -241,35 +242,40 @@ class FirebaseChatCore {
   /// 1) Make sure `updatedAt` exists on all rooms
   /// 2) Write a Cloud Function which will update `updatedAt` of the room
   /// when the room changes or new messages come in.
-  Stream<List<types.Room>> rooms({bool orderByUpdatedAt = false}) {
+  Stream<List<types.Room>> rooms({bool orderByUpdatedAt = false}) async* {
     final fu = firebaseUser;
 
-    if (fu == null) return const Stream.empty();
+    if (fu == null) yield <types.Room>[];
 
-    return getFirebaseDatabase().child(config.roomsPathName).onValue.map(
-      (event) {
-        if (event.snapshot.value == null) {
-          return <types.Room>[];
+    final roomsRef = getFirebaseDatabase().child(config.roomsPathName);
+
+    await for (var event in roomsRef.onValue) {
+      if (event.snapshot.value == null) {
+        yield <types.Room>[];
+      }
+
+      final snapshotMap = event.snapshot.value as Map;
+      final roomsMap = Map<String, dynamic>.from(snapshotMap);
+      final filteredRooms = <Map<String, dynamic>>[];
+
+      for (var entry in roomsMap.entries) {
+        final room = Map<String, dynamic>.from(entry.value);
+        final List<Object?> users = room['users'] ?? [];
+
+        room['users'] = await getUsers(users.map((item) => item.toString()).toList());
+
+        if (users.contains(fu?.uid)) {
+          room['id'] = entry.key;
+          filteredRooms.add(room);
         }
+      }
 
-        final roomsMap = Map<String, dynamic>.from(event.snapshot.value as Map<String, dynamic>);
-        final roomsList = roomsMap.values.map((v) => Map<String, dynamic>.from(v)).toList();
-        final filteredRooms = <Map<String, dynamic>>[];
+      if (orderByUpdatedAt) {
+        filteredRooms.sort((a, b) => b['updatedAt'].compareTo(a['updatedAt']));
+      }
 
-        for (var room in roomsList) {
-          final List<dynamic> users = room['users'] ?? [];
-          if (users.contains(fu.uid)) {
-            filteredRooms.add(room);
-          }
-        }
-
-        if (orderByUpdatedAt) {
-          filteredRooms.sort((a, b) => b['updatedAt'].compareTo(a['updatedAt']));
-        }
-
-        return filteredRooms.map((roomData) => types.Room.fromJson(roomData)).toList();
-      },
-    );
+      yield filteredRooms.map((roomData) => types.Room.fromJson(roomData)).toList();
+    }
   }
 
   /// Sends a message to Firebase Realtime DB. Accepts any partial message and a
@@ -397,5 +403,22 @@ class FirebaseChatCore {
       }
       throw FormatException('');
     });
+  }
+
+  Future<List<Map<String, dynamic>>> getUsers(List<String> ids) async {
+    final dbReference = getFirebaseDatabase().child('users');
+    List<Map<String, dynamic>> usersData = [];
+
+    await Future.wait(ids.map((id) async {
+      final dbEvent = await dbReference.child(id).once();
+
+      if (dbEvent.snapshot.value != null) {
+        final userMap = dbEvent.snapshot.value as Map;
+        userMap['id'] = id;
+        usersData.add(Map<String, dynamic>.from(userMap));
+      }
+    }));
+
+    return usersData;
   }
 }
