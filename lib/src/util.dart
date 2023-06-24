@@ -20,11 +20,8 @@ Future<Map<String, dynamic>> fetchUser(
 
   final data = Map<String, dynamic>.from(dbEvent.snapshot.value as Map);
 
-  // data['createdAt'] = DateTime.fromMillisecondsSinceEpoch(data['createdAt']).millisecond;
   data['id'] = dbEvent.snapshot.key;
-  // data['lastSeen'] = DateTime.fromMillisecondsSinceEpoch(data['lastSeen'] as int);
   data['role'] = role;
-  // data['updatedAt'] = DateTime.fromMillisecondsSinceEpoch(data['updatedAt'] as int);
 
   return data;
 }
