@@ -231,6 +231,11 @@ class FirebaseChatCore {
 
     return getFirebaseDatabase().child('${config.roomsPathName}/$roomId').onValue.asyncMap((event) async {
       final roomData = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final List<Object?> users = roomData['users'] ?? [];
+
+      // Effectively replaces a list of user IDs with a list of a map of the actual users data.
+      roomData['users'] = await getUsers(users.map((item) => item.toString()).toList());
+      roomData['id'] = roomId;
       return types.Room.fromJson(roomData);
     });
   }
