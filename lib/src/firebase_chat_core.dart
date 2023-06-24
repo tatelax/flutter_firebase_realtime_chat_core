@@ -206,8 +206,13 @@ class FirebaseChatCore {
             return <types.Message>[];
           }
 
-          final dataMap = event.snapshot.value as Map<String, dynamic>;
-          final dataList = dataMap.values.map((v) => Map<String, dynamic>.from(v as Map)).toList();
+          final dataMap = event.snapshot.value as Map;
+          final dataList = dataMap.entries.map((e) {
+            final value = Map<String, dynamic>.from(e.value);
+            value['id'] = e.key;
+            return value;
+          }).toList();
+
           dataList.sort((a, b) => b['createdAt'].compareTo(a['createdAt'])); // Sort by 'createdAt' in descending order.
 
           return dataList.map((data) {
