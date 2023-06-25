@@ -6,8 +6,8 @@ import 'package:meta/meta.dart';
 /// change the default collection names. When using custom names don't forget
 /// to update your security rules and indexes.
 @immutable
-class FirebaseChatCoreConfig {
-  const FirebaseChatCoreConfig(
+class FirebaseRealtimeChatCoreConfig {
+  const FirebaseRealtimeChatCoreConfig(
     this.firebaseAppName,
     this.roomsPathName,
     this.usersPathName,
