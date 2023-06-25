@@ -395,15 +395,7 @@ class FirebaseRealtimeChatCore {
 
           final data = Map<String, dynamic>.from(value);
 
-          // data['createdAt'] = data['createdAt'] is DateTime
-          //     ? (data['createdAt'] as DateTime).millisecondsSinceEpoch
-          //     : data['createdAt'];
           data['id'] = key;
-          // data['lastSeen'] =
-          //     data['lastSeen'] is DateTime ? (data['lastSeen'] as DateTime).millisecondsSinceEpoch : data['lastSeen'];
-          // data['updatedAt'] = data['updatedAt'] is DateTime
-          //     ? (data['updatedAt'] as DateTime).millisecondsSinceEpoch
-          //     : data['updatedAt'];
           users.add(types.User.fromJson(data));
         });
 
@@ -411,13 +403,13 @@ class FirebaseRealtimeChatCore {
       } catch (e) {
         print(e);
       }
-      throw FormatException('');
+      throw const FormatException('');
     });
   }
 
   Future<List<Map<String, dynamic>>> getUsers(List<String> ids) async {
     final dbReference = getFirebaseDatabase().child('users');
-    List<Map<String, dynamic>> usersData = [];
+    final usersData = <Map<String, dynamic>>[];
 
     await Future.wait(ids.map((id) async {
       final dbEvent = await dbReference.child(id).once();
