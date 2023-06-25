@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
-import 'package:flutter_firebase_chat_core/flutter_firebase_chat_core.dart';
+import 'package:flutter_firebase_chat_core/flutter_firebase_realtime_chat_core.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -47,7 +47,7 @@ class _RegisterPageState extends State<RegisterPage> {
         email: _usernameController!.text,
         password: _passwordController!.text,
       );
-      await FirebaseChatCore.instance.createUserInDatabase(
+      await FirebaseRealtimeChatCore.instance.createUserInDatabase(
         types.User(
           firstName: _firstName,
           id: credential.user!.uid,

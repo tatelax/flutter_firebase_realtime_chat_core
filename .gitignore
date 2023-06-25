@@ -117,11 +117,3 @@ app.*.symbols
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
 !**/ios/**/Podfile.lock
-example/android/app/build.gradle
-example/lib/firebase_options.dart
-example/linux/flutter/generated_plugin_registrant.cc
-example/linux/flutter/generated_plugin_registrant.h
-example/linux/flutter/generated_plugins.cmake
-example/windows/flutter/generated_plugin_registrant.cc
-example/windows/flutter/generated_plugin_registrant.h
-example/windows/flutter/generated_plugins.cmake

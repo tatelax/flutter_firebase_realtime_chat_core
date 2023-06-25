@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
-import 'package:flutter_firebase_chat_core/flutter_firebase_chat_core.dart';
+import 'package:flutter_firebase_chat_core/flutter_firebase_realtime_chat_core.dart';
 
 import 'chat.dart';
 import 'util.dart';
@@ -32,7 +32,7 @@ class UsersPage extends StatelessWidget {
 
   void _handlePressed(types.User otherUser, BuildContext context) async {
     final navigator = Navigator.of(context);
-    final room = await FirebaseChatCore.instance.createRoom(otherUser);
+    final room = await FirebaseRealtimeChatCore.instance.createRoom(otherUser);
 
     navigator.pop();
     await navigator.push(
@@ -51,7 +51,7 @@ class UsersPage extends StatelessWidget {
           title: const Text('Users'),
         ),
         body: StreamBuilder<List<types.User>>(
-          stream: FirebaseChatCore.instance.users(),
+          stream: FirebaseRealtimeChatCore.instance.users(),
           initialData: const [],
           builder: (context, snapshot) {
             if (!snapshot.hasData || snapshot.data!.isEmpty) {

@@ -6,9 +6,9 @@ import 'firebase_chat_core_config.dart';
 import 'util.dart';
 
 /// Provides access to Firebase chat data. Singleton, use
-/// FirebaseChatCore.instance to aceess methods.
-class FirebaseChatCore {
-  FirebaseChatCore._privateConstructor() {
+/// FirebaseRealtimeChatCore.instance to aceess methods.
+class FirebaseRealtimeChatCore {
+  FirebaseRealtimeChatCore._privateConstructor() {
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
       firebaseUser = user;
     });
@@ -27,7 +27,7 @@ class FirebaseChatCore {
   User? firebaseUser = FirebaseAuth.instance.currentUser;
 
   /// Singleton instance.
-  static final FirebaseChatCore instance = FirebaseChatCore._privateConstructor();
+  static final FirebaseRealtimeChatCore instance = FirebaseRealtimeChatCore._privateConstructor();
 
   /// Gets proper [FirebaseDatabase] instance.
   DatabaseReference getFirebaseDatabase() => FirebaseDatabase.instance.ref();
