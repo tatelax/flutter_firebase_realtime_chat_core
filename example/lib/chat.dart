@@ -182,7 +182,8 @@ class _ChatPageState extends State<ChatPage> {
   ) {
     final updatedMessage = message.copyWith(previewData: previewData);
 
-    FirebaseRealtimeChatCore.instance.updateMessage(updatedMessage, widget.room.id);
+    FirebaseRealtimeChatCore.instance
+        .updateMessage(updatedMessage, widget.room.id);
   }
 
   void _handleSendPressed(types.PartialText message) {
