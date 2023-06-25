@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
-import 'package:flutter_firebase_chat_core/flutter_firebase_realtime_chat_core.dart';
+import 'package:flutter_firebase_realtime_chat_core/flutter_firebase_realtime_chat_core.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -27,8 +27,7 @@ class _RegisterPageState extends State<RegisterPage> {
     final faker = Faker();
     _firstName = faker.person.firstName();
     _lastName = faker.person.lastName();
-    _email =
-        '${_firstName!.toLowerCase()}.${_lastName!.toLowerCase()}@${faker.internet.domainName()}';
+    _email = '${_firstName!.toLowerCase()}.${_lastName!.toLowerCase()}@${faker.internet.domainName()}';
     _focusNode = FocusNode();
     _passwordController = TextEditingController(text: 'Qawsed1-');
     _usernameController = TextEditingController(
@@ -44,8 +43,7 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      final credential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _usernameController!.text,
         password: _passwordController!.text,
       );
@@ -135,8 +133,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   child: TextField(
                     autocorrect: false,
-                    autofillHints:
-                        _registering ? null : [AutofillHints.password],
+                    autofillHints: _registering ? null : [AutofillHints.password],
                     controller: _passwordController,
                     decoration: InputDecoration(
                       border: const OutlineInputBorder(

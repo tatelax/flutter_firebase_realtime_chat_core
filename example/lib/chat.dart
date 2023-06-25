@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
-import 'package:flutter_firebase_chat_core/flutter_firebase_realtime_chat_core.dart';
+import 'package:flutter_firebase_realtime_chat_core/flutter_firebase_realtime_chat_core.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
@@ -182,8 +182,7 @@ class _ChatPageState extends State<ChatPage> {
   ) {
     final updatedMessage = message.copyWith(previewData: previewData);
 
-    FirebaseRealtimeChatCore.instance
-        .updateMessage(updatedMessage, widget.room.id);
+    FirebaseRealtimeChatCore.instance.updateMessage(updatedMessage, widget.room.id);
   }
 
   void _handleSendPressed(types.PartialText message) {
