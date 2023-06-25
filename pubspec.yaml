@@ -1,7 +1,7 @@
 name: flutter_firebase_realtime_chat_core
 description: >
   Forked version of `flutter_firebase_chat_core` to use Firebase Realtime DB instead of Firestore.
-version: 1.0.0
+version: 1.0.1
 homepage: https://flyer.chat
 repository: https://github.com/tatelax/flutter_firebase_realtime_chat_core
 
